@@ -10,6 +10,7 @@
          time_to_epoch_float/1, now_int/0, now_float/0, byte_size/1, listify/1,
          reverse_bits/1]).
 
+-include("../include/config.hrl").
 -include("../include/profile.hrl").
 
 -ifdef(TEST).
@@ -142,15 +143,20 @@ gather(N, Max, Ref, L) ->
 	  {Ref, Ret} -> gather(N-1, Max, Ref, [Ret|L])
   end.
 
+get_hash_module(#config{hash_module=HashModule}) ->
+    HashModule.
+
 hash(Term) ->
+  HashModule = get_hash_module(configuration:get_config()),
   ?prof(hash),
-  R = fnv:hash(Term),
+  R = HashModule:hash(Term),
   ?forp(hash),
   R.
 
 hash(Term, Seed) ->
+  HashModule = get_hash_module(configuration:get_config()),
   ?prof(hash),
-  R = fnv:hash(Term, Seed),
+  R = HashModule:hash(Term, Seed),
   ?forp(hash),
   R.
 
