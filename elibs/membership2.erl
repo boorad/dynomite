@@ -2,9 +2,9 @@
 %%% File:      membership2.erl
 %%% @author    Cliff Moon <cliff@powerset.com> []
 %%% @copyright 2009 Cliff Moon
-%%% @doc  
+%%% @doc
 %%%
-%%% @end  
+%%% @end
 %%%
 %%% @since 2009-05-04 by Cliff Moon
 %%%-------------------------------------------------------------------
@@ -16,7 +16,7 @@
 -define(VERSION,2).
 
 %% API
--export([start_link/2, register/2, servers_for_key/1]).
+-export([start_link/2, register/2, servers_for_key/1, stop/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -24,11 +24,12 @@
 
 -include("../include/config.hrl").
 -include("../include/common.hrl").
+-include_lib("eunit/include/eunit.hrl").
 
 -record(state, {header=?VERSION, node, nodes, partitions, version, servers}).
 
 -ifdef(TEST).
--include("etest/membership2_test.erl").
+-include("../etest/membership2_test.erl").
 -endif.
 
 %%====================================================================
@@ -37,17 +38,17 @@
 %%--------------------------------------------------------------------
 %% @spec start_link() -> {ok,Pid} | ignore | {error,Error}
 %% @doc Starts the server
-%% @end 
+%% @end
 %%--------------------------------------------------------------------
 start_link(Node, Nodes) ->
   gen_server:start_link({local, membership}, ?MODULE, [Node, Nodes], []).
-  
-register(Partition, Pid) ->
+
+register(_Partition, _Pid) ->
   ok.
-  
-servers_for_key(Key) ->
+
+servers_for_key(_Key) ->
   ok.
-  
+
 stop(Server) ->
   gen_server:cast(Server, stop).
 
@@ -61,7 +62,7 @@ stop(Server) ->
 %%                         ignore               |
 %%                         {stop, Reason}
 %% @doc Initiates the server
-%% @end 
+%% @end
 %%--------------------------------------------------------------------
 init([Node, Nodes]) ->
   Config = configuration:get_config(),
@@ -84,7 +85,7 @@ init([Node, Nodes]) ->
   {ok, State}.
 
 %%--------------------------------------------------------------------
-%% @spec 
+%% @spec
 %% handle_call(Request, From, State) -> {reply, Reply, State} |
 %%                                      {reply, Reply, State, Timeout} |
 %%                                      {noreply, State} |
@@ -92,7 +93,7 @@ init([Node, Nodes]) ->
 %%                                      {stop, Reason, Reply, State} |
 %%                                      {stop, Reason, State}
 %% @doc Handling call messages
-%% @end 
+%% @end
 %%--------------------------------------------------------------------
 handle_call({join, OtherNode}, _From, State = #state{node=Node, nodes=Nodes, servers=Servers}) ->
   Config = configuration:get_config(),
@@ -106,7 +107,7 @@ handle_call({join, OtherNode}, _From, State = #state{node=Node, nodes=Nodes, ser
 handle_call({servers_for_key, Key}, _From, State = #state{servers=Servers}) ->
   Config = configuration:get_config(),
   Hash = lib_misc:hash(Key),
-  Partition = hash_to_partition(Hash, Config#config.q),
+  _Partition = hash_to_partition(Hash, Config#config.q),
   {_, Servers} = lists:unzip(ets:lookup(Servers, Hash)),
   {reply, Servers, State};
 
@@ -118,7 +119,7 @@ handle_call(state, _From, State) ->
 %%                                      {noreply, State, Timeout} |
 %%                                      {stop, Reason, State}
 %% @doc Handling cast messages
-%% @end 
+%% @end
 %%--------------------------------------------------------------------
 handle_cast({gossip, Version, Nodes, ServerList}, State = #state{node=Me}) ->
   {MergeType, Merged} = merge_state(Version, Nodes, ServerList, State),
@@ -134,7 +135,7 @@ handle_cast({register, Partition, Pid}, State = #state{servers=Servers}) ->
   ets:insert(Servers, {Partition, Pid}),
   ets:insert(Servers, {Ref, Partition, Pid}),
   {noreply, State};
-  
+
 handle_cast(stop, State) ->
   {stop, shutdown, State}.
 
@@ -143,7 +144,7 @@ handle_cast(stop, State) ->
 %%                                       {noreply, State, Timeout} |
 %%                                       {stop, Reason, State}
 %% @doc Handling all non call/cast messages
-%% @end 
+%% @end
 %%--------------------------------------------------------------------
 handle_info({'DOWN', Ref, _, Pid, _}, State = #state{servers=Servers}) ->
   erlang:demonitor(Ref),
@@ -158,7 +159,7 @@ handle_info({'DOWN', Ref, _, Pid, _}, State = #state{servers=Servers}) ->
 %% terminate. It should be the opposite of Module:init/1 and do any necessary
 %% cleaning up. When it returns, the gen_server terminates with Reason.
 %% The return value is ignored.
-%% @end 
+%% @end
 %%--------------------------------------------------------------------
 terminate(_Reason, _State) ->
   ok.
@@ -166,7 +167,7 @@ terminate(_Reason, _State) ->
 %%--------------------------------------------------------------------
 %% @spec code_change(OldVsn, State, Extra) -> {ok, NewState}
 %% @doc Convert process state when code is changed
-%% @end 
+%% @end
 %%--------------------------------------------------------------------
 code_change(_OldVsn, State, _Extra) ->
   {ok, State}.
@@ -179,7 +180,7 @@ code_change(_OldVsn, State, _Extra) ->
 load(Node) ->
   Config = configuration:get_config(),
   case file:consult(filename:join([Config#config.directory, lists:concat([Node, ".world"])])) of
-    {error, Reason} -> 
+    {error, Reason} ->
       ?infoFmt("Could not load state: ~p~n", [Reason]),
       [];
     {ok, [Terms]} ->
@@ -200,7 +201,7 @@ save(State) ->
 %% which isn't necessarily the same as the list of running nodes
 join_to(Node, Servers, Partners) ->
   join_to(Node, Servers, Partners, {vector_clock:create(pid_to_list(self())), []}).
-  
+
 join_to(_, _, [], {Version, World}) ->
   {Version, World};
 join_to(Node, Servers, [Remote|Partners], {Version, World}) ->
@@ -209,7 +210,7 @@ join_to(Node, Servers, [Remote|Partners], {Version, World}) ->
     {RemoteVersion, NewNodes, ServerList} ->
       server_list_into_table(ServerList, Servers),
       join_to(Node, Servers, Partners, {
-        vector_clock:merge(Version, RemoteVersion), 
+        vector_clock:merge(Version, RemoteVersion),
         lists:usort(World ++ NewNodes)})
   end.
 
@@ -230,16 +231,16 @@ fire_gossip(Me, State = #state{nodes = Nodes}, Config) ->
   Partners = replication:partners(Me, Nodes, Config),
   lists:foreach(fun(Node) -> gossip_with(Me, Node, State) end, Partners).
 
-gossip_with(Me, OtherNode, State = #state{version = Version, nodes = Nodes, servers = Servers}) ->
+gossip_with(_Me, OtherNode, _State = #state{version = Version, nodes = Nodes, servers = Servers}) ->
   ServerPacket = servers_to_list(Servers),
   gen_server:call({membership, OtherNode}, {gossip, Version, Nodes, ServerPacket}).
-  
+
 %% this gets everything we know of, not just locals
 servers_to_list(Servers) ->
   L = ets:foldl(fun
     ({Partition, Pid}, List) ->
       [{Partition, Pid}|List];
-    ({Ref, Partition, Pid}, List) ->
+    ({_Ref, _Partition, _Pid}, List) ->
       List
     end, [], Servers),
   lists:keysort(1, L).
@@ -248,7 +249,7 @@ server_list_into_table(ServerList, Servers) ->
   lists:foreach(fun({Partition, Pid}) ->
       ets:insert(Servers, {Partition, Pid})
     end, ServerList).
-  
+
 hash_to_partition(0, _) ->
   1;
 hash_to_partition(Hash, Q) ->
@@ -259,7 +260,7 @@ hash_to_partition(Hash, Q) ->
     Rem > 0 -> Factor * Size + 1;
     true -> ((Factor-1) * Size) + 1
   end.
-  
+
 int_partitions_for_node(Node, State, master) ->
   Partitions = State#state.partitions,
   {Matching,_} = lists:partition(fun({N,_}) -> N == Node end, Partitions),

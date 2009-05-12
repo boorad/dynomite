@@ -1,5 +1,5 @@
 -include_lib("eunit/include/eunit.hrl").
--include("etest/test.hrl").
+-include("../etest/test.hrl").
 
 singular_startup_sequence_test() ->
   configuration:start_link(#config{n=1,r=1,w=1,q=6,directory=priv_dir()}),
@@ -15,4 +15,4 @@ singular_startup_sequence_test() ->
   ?assertMatch({ok, [[a]]}, file:consult(filename:join([priv_dir(), "a.world"]))).
 
 multi_startup_sequence_test() ->
-  
+  ok.
