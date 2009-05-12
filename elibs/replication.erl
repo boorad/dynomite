@@ -2,9 +2,9 @@
 %%% File:      replication.erl
 %%% @author    Cliff Moon <> []
 %%% @copyright 2009 Cliff Moon
-%%% @doc  
+%%% @doc
 %%%
-%%% @end  
+%%% @end
 %%%
 %%% @since 2009-05-06 by Cliff Moon
 %%%-------------------------------------------------------------------
@@ -23,11 +23,10 @@
 %% @spec partners(Node::atom(), Nodes::list(), Config::config()) ->
 %%          list()
 %% @doc  returns the list of all replication partners for the specified node
-%% @end 
+%% @end
 %%--------------------------------------------------------------------
 partners(Node, Nodes, Config) ->
   ok.
 %%====================================================================
 %% Internal functions
 %%====================================================================
-

@@ -24,7 +24,6 @@
 
 -include("../include/config.hrl").
 -include("../include/common.hrl").
--include_lib("eunit/include/eunit.hrl").
 
 -record(state, {header=?VERSION, node, nodes, partitions, version, servers}).
 
