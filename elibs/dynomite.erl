@@ -52,14 +52,14 @@ load_and_start_apps([App|Apps]) ->
         ok -> load_and_start_apps(Apps);
         Err ->
           ?infoFmt("error starting ~p: ~p~n", [App, Err]),
-          timer:sleep(10),
-          halt(1)
+          timer:sleep(10)
+%%          halt(1)    %% damn, that's cold
       end;
     Err ->
       ?infoFmt("error loading ~p: ~p~n", [App, Err]),
       Err,
-      timer:sleep(10),
-      halt(1)
+      timer:sleep(10)
+%%      halt(1)    %% damn, that's cold
   end.
 
 collect_loop() ->

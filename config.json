@@ -11,5 +11,6 @@
   "w": 1,
   "q": 6,
   "cache": false,
-  "cache_size": 128000
+  "cache_size": 128000,
+  "geoattributes": ["a","1","1"]
 }
