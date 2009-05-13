@@ -33,7 +33,7 @@
 %% @end
 %%--------------------------------------------------------------------
 partners(Node, Nodes, Config) ->
-  ?debugFmt("~nNode: ~p~nNodes: ~p~nConfig: ~p~n", [Node, Nodes, Config]),
+  ?debugFmt("~nNode  : ~p~nNodes : ~p~nConfig: ~p~n", [Node, Nodes, Config]),
   [].
 %%====================================================================
 %% Internal functions

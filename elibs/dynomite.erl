@@ -1,12 +1,19 @@
 -module(dynomite).
 
--export([start/0, running/1, running_nodes/0, pause_all_sync/0, start_all_sync/0]).
+-export([start/0, running/1, running_nodes/0, pause_all_sync/0, start_all_sync/0, stop/0, restart/0]).
 
 -include("../include/common.hrl").
 
 start() ->
   crypto:start(),
-  load_and_start_apps([os_mon, thrift, mochiweb, dynomite]).
+  ensure_started([os_mon, thrift, mochiweb, dynomite]).
+
+stop() ->
+  application:stop(dynomite).
+
+restart() ->
+  stop(),
+  start().
 
 % running(Node) when Node == node() ->
 %   true;
@@ -42,24 +49,17 @@ start_all_sync() ->
 
 %%==============================================================
 
-load_and_start_apps([]) ->
+ensure_started([]) ->
   ok;
-
-load_and_start_apps([App|Apps]) ->
-  case application:load(App) of
+ensure_started([App|Apps]) ->
+  case application:start(App) of
     ok ->
-      case application:start(App) of
-        ok -> load_and_start_apps(Apps);
-        Err ->
-          ?infoFmt("error starting ~p: ~p~n", [App, Err]),
-          timer:sleep(10)
-%%          halt(1)    %% damn, that's cold
-      end;
+      ensure_started(Apps);
+    {error, {already_started, App}} ->
+      ?infoFmt("already started: ~p~n", [App]),
+      ensure_started(Apps);
     Err ->
-      ?infoFmt("error loading ~p: ~p~n", [App, Err]),
-      Err,
-      timer:sleep(10)
-%%      halt(1)    %% damn, that's cold
+      ?infoFmt("error starting ~p: ~p~n", [App, Err])
   end.
 
 collect_loop() ->

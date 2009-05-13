@@ -22,4 +22,3 @@ config(priv_dir) ->
             filename:absname(
               filename:join([Root, "log", atom_to_list(node())]))
     end.
-    
