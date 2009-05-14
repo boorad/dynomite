@@ -16,7 +16,7 @@
 -define(VERSION,2).
 
 %% API
--export([start_link/2, register/2, servers_for_key/1, stop/1]).
+-export([start_link/2, register/2, servers_for_key/1, stop/1, listen/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -25,7 +25,7 @@
 -include("../include/config.hrl").
 -include("../include/common.hrl").
 
--record(state, {header=?VERSION, node, nodes, partitions, version, servers}).
+-record(state, {header=?VERSION, node, nodes, partitions, version, servers, listeners=[]}).
 
 -ifdef(TEST).
 -include("../etest/membership2_test.erl").
@@ -50,6 +50,9 @@ servers_for_key(Key) ->
 
 stop(Server) ->
   gen_server:cast(Server, stop).
+
+listen(Pid) ->
+  gen_server:call(membership, {listen, Pid}).
 
 %%====================================================================
 %% gen_server callbacks
@@ -103,6 +106,9 @@ handle_call({join, OtherNode}, _From, State = #state{version=Version, node=Node,
   fire_gossip(Node, NewState, Config),
   {reply, {Version, WorldNodes, ServerList}, NewState};
 
+handle_call({listen, Pid}, _From, State = #state{listeners=Listeners, partitions=PMap}) ->
+  {reply, PMap, State#state{listeners=lists:usort([Pid|Listeners])}};
+
 handle_call({servers_for_key, Key}, _From, State = #state{servers=Servers}) ->
   Config = configuration:get_config(),
   Hash = lib_misc:hash(Key),
@@ -127,6 +133,7 @@ handle_cast({gossip, Version, Nodes, ServerList}, State = #state{node=Me}) ->
     equal -> {noreply, Merged};
     merged ->
       fire_gossip(Me, Merged, configuration:get_config()),
+      publish_map_to_listeners(Merged),
       {noreply, Merged}
   end;
 
@@ -151,9 +158,10 @@ handle_cast(stop, State) ->
 handle_info({'DOWN', Ref, _, Pid, _}, State = #state{node=Me,servers=Servers}) ->
   erlang:demonitor(Ref),
   [{Ref, Partition, Pid}] = ets:lookup(Servers, Ref),
-  ets:delete(Servers, Ref),
+  ets:delete_object(Servers, {Ref, Partition, Pid}),
   ets:delete_object(Servers, {Partition, Pid}),
-  ?debugFmt("Pid is down ~p", [Pid]),
+  ?debugFmt("Pid is down ~p", [{Ref, Partition, Pid}]),
+  ?debugFmt("~p", [ets:lookup(Servers, Partition)]),
   fire_gossip(Me, State, configuration:get_config()),
   {noreply, State}.
 
@@ -239,6 +247,9 @@ fire_gossip(Me, State = #state{nodes = Nodes}, Config) ->
 
 gossip_with(_Me, OtherNode, _State = #state{version = Version, nodes = Nodes, servers = Servers}) ->
   ServerPacket = servers_to_list(Servers),
+  call_gossip(OtherNode, Version, Nodes, ServerPacket).
+
+call_gossip(OtherNode, Version, Nodes, ServerPacket) ->
   gen_server:call({membership, OtherNode}, {gossip, Version, Nodes, ServerPacket}).
 
 %% this gets everything we know of, not just locals
@@ -266,6 +277,11 @@ hash_to_partition(Hash, Q) ->
     Rem > 0 -> Factor * Size + 1;
     true -> ((Factor-1) * Size) + 1
   end.
+
+publish_map_to_listeners(#state{partitions=PMap,listeners=Listeners,node=Node}) ->
+  lists:foreach(fun(Pid) ->
+      gen_server:cast(Pid, {remap, Node, PMap})
+    end, Listeners).
 
 int_partitions_for_node(Node, State, master) ->
   Partitions = State#state.partitions,
