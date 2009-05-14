@@ -8,7 +8,8 @@
 
 
 partners_test() ->
-  configuration:start_link(#config{n=2,r=1,w=1,q=6,directory=priv_dir()}),
-  Partners = partners(?NODEA, ?NODES, configuration:get_config()),
+  configuration:start_link(#config{n=2,r=1,w=1,q=6,
+                                   directory=priv_dir()}),
+  Partners = replication:partners(?NODEA, ?NODES, configuration:get_config()),
   ?assertEqual(Partners, []),
   configuration:stop().

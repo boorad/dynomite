@@ -24,7 +24,7 @@ task :clean do
 end
 
 task :default => [:build_deps, :build_c_drivers, :build_erl] do
-  
+
 end
 
 task :test_env => [:build_test_deps, :test_config] do
@@ -64,7 +64,7 @@ end
 task :thrift_clients do
   sh "thrift --gen rb if/dynomite.thrift"
   sh "thrift -erl if/dynomite.thrift"
-end 
+end
 
 task :release => [:default] do
   rel_file_contents = File.read("releases/dynomite.rel").gsub(/\?VERSION/, VERSION)
@@ -93,7 +93,7 @@ task :release => [:default] do
   sh "cp -r deps/mochiweb/ebin/* #{release}/ebin" rescue nil
   sh "cp -r deps/mochiweb/include/* #{release}/include" rescue nil
   sh "cp -r deps/mochiweb/priv/* #{release}/priv" rescue nil
-  
+
   sh %Q(cd #{release} && erl -pa ./ebin -noshell -eval "systools:make_script(\\"dynomite_rel-#{VERSION}\\")." -eval "systools:make_tar(\\"dynomite_rel-#{VERSION}\\")." -s init stop)
 end
 
@@ -115,7 +115,7 @@ task :test => [:test_env, :default] do
   env_peek = ENV['MOD'] || ENV['MODS'] || ENV['MODULE'] || ENV['MODULES']
   if env_peek
     mods = env_peek.split(",")
-  else 
+  else
     mods = Dir["etest/*_test.erl"].map { |x| x.match(/etest\/(.*)_test.erl/)[1] }
   end
   mod_directives = mods.join(" ")
@@ -131,7 +131,7 @@ task :coverage => [:test_env] do
   env_peek = ENV['MOD'] || ENV['MODS'] || ENV['MODULE'] || ENV['MODULES']
   if env_peek
     mods = env_peek.split(",")
-  else 
+  else
     mods = Dir["etest/*_test.erl"].map { |x| x.match(/etest\/(.*)_test.erl/)[1] }
   end
   mod_directives = mods.join(', ')#map{|m| %Q(\\"#{m}\\")}.join(", ")
@@ -177,7 +177,7 @@ task :build_deps do
 end
 
 task :build_test_deps do
-  sh "erlc +debug_info -I include #{ERLC_TEST_FLAGS} -o etest etest/t.erl etest/mock_genserver.erl etest/mock.erl"
+  sh "erlc +debug_info -I include #{ERLC_TEST_FLAGS} -o etest etest/t.erl etest/mock_genserver.erl etest/mock.erl etest/stub.erl"
 end
 
 task :build_tarball => [:default, 'build'] do
@@ -193,7 +193,7 @@ task :test_config do
   cfg = File.new("test.config", "w+")
   # write their error logs to the log files in log dir
   cfg.write(<<EOC)
-[{kernel, 
+[{kernel,
   [{error_logger, {file, "#{priv}/kernel.log"}}
   ]},
  {sasl,
