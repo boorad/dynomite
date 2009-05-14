@@ -2,9 +2,9 @@
 %%% File:      mock_genserver.erl
 %%% @author    Cliff Moon <> []
 %%% @copyright 2009 Cliff Moon
-%%% @doc  
+%%% @doc
 %%%
-%%% @end  
+%%% @end
 %%%
 %%% @since 2009-01-02 by Cliff Moon
 %%%-------------------------------------------------------------------
@@ -30,20 +30,20 @@
 %%--------------------------------------------------------------------
 %% @spec start_link() -> {ok,Pid} | ignore | {error,Error}
 %% @doc Starts the server
-%% @end 
+%% @end
 %%--------------------------------------------------------------------
 start_link(Reference) ->
   gen_server:start_link(Reference, ?MODULE, [], []).
-    
+
 stub_call(Server, Sym, Fun) when is_function(Fun) ->
   gen_server:call(Server, {mock_stub_call, Sym, Fun}).
-  
+
 expects_call(Server, Args, Fun) when is_function(Fun) ->
   gen_server:call(Server, {mock_expects_call, Args, Fun}).
-  
+
 expects_call(Server, Args, Fun, Times) when is_function(Fun) ->
   gen_server:call(Server, {mock_expects_call, Args, Fun, Times}).
-  
+
 stop(Server) ->
   gen_server:call(Server, mock_stop).
 
@@ -57,13 +57,13 @@ stop(Server) ->
 %%                         ignore               |
 %%                         {stop, Reason}
 %% @doc Initiates the server
-%% @end 
+%% @end
 %%--------------------------------------------------------------------
 init([]) ->
     {ok, #state{}}.
 
 %%--------------------------------------------------------------------
-%% @spec 
+%% @spec
 %% handle_call(Request, From, State) -> {reply, Reply, State} |
 %%                                      {reply, Reply, State, Timeout} |
 %%                                      {noreply, State} |
@@ -71,19 +71,19 @@ init([]) ->
 %%                                      {stop, Reason, Reply, State} |
 %%                                      {stop, Reason, State}
 %% @doc Handling call messages
-%% @end 
+%% @end
 %%--------------------------------------------------------------------
 handle_call({mock_stub_call, Sym, Fun}, From, State = #state{call_stubs=Stubs}) ->
   {reply, ok, State#state{call_stubs=[{Sym, Fun}|Stubs]}};
-  
+
 handle_call({mock_expects_call, Args, Fun}, From, State = #state{call_expects=Expects}) ->
   {reply, ok, State#state{call_expects=add_expectation(Args, Fun, at_least_once, Expects)}};
-  
+
 handle_call({mock_expects_call, Args, Fun, Times}, From, State = #state{call_expects=Expects}) ->
   {reply, ok, State#state{call_expects=add_expectation(Args, Fun, Times, Expects)}};
 
 handle_call(mock_stop, From, State) ->
-  {stop, shutdown, ok, State};
+  {stop, normal, ok, State};
 
 handle_call(Request, From, State = #state{call_stubs=Stubs,call_expects=Expects}) ->
   % expectations have a higher priority
@@ -102,7 +102,7 @@ handle_call(Request, From, State = #state{call_stubs=Stubs,call_expects=Expects}
 %%                                      {noreply, State, Timeout} |
 %%                                      {stop, Reason, State}
 %% @doc Handling cast messages
-%% @end 
+%% @end
 %%--------------------------------------------------------------------
 handle_cast(_Msg, State) ->
     {noreply, State}.
@@ -112,7 +112,7 @@ handle_cast(_Msg, State) ->
 %%                                       {noreply, State, Timeout} |
 %%                                       {stop, Reason, State}
 %% @doc Handling all non call/cast messages
-%% @end 
+%% @end
 %%--------------------------------------------------------------------
 handle_info(_Info, State) ->
     {noreply, State}.
@@ -123,7 +123,7 @@ handle_info(_Info, State) ->
 %% terminate. It should be the opposite of Module:init/1 and do any necessary
 %% cleaning up. When it returns, the gen_server terminates with Reason.
 %% The return value is ignored.
-%% @end 
+%% @end
 %%--------------------------------------------------------------------
 terminate(_Reason, _State) ->
     ok.
@@ -131,7 +131,7 @@ terminate(_Reason, _State) ->
 %%--------------------------------------------------------------------
 %% @spec code_change(OldVsn, State, Extra) -> {ok, NewState}
 %% @doc Convert process state when code is changed
-%% @end 
+%% @end
 %%--------------------------------------------------------------------
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
@@ -149,7 +149,7 @@ find_expectation(Request, Expects) ->
 
 find_expectation(Request, [], Rest) ->
   not_found;
-  
+
 find_expectation(Request, [{Args, Fun, Times}|Expects], Rest) ->
   MatchFun = generate_match_fun(Args),
   case MatchFun(Request) of
@@ -165,42 +165,42 @@ find_expectation(Request, [{Args, Fun, Times}|Expects], Rest) ->
 find_stub(Request, Stub) when is_tuple(Request) ->
   Sym = element(1, Request),
   find_stub(Sym, Stub);
-  
+
 find_stub(Sym, []) ->
   not_found;
-  
+
 find_stub(Sym, Stubs) when not is_atom(Sym) ->
   not_found;
-  
+
 find_stub(Sym, [{Sym, Fun}|Stubs]) ->
   {found, {Sym, Fun}};
-  
+
 find_stub(Sym, [_Stub|Stubs]) ->
   find_stub(Sym, Stubs).
 
 generate_match_fun(Args) when is_tuple(Args) ->
   generate_match_fun(tuple_to_list(Args));
-  
+
 generate_match_fun(Args) when not is_list(Args) ->
   generate_match_fun([Args]);
-  
+
 generate_match_fun(Args) when is_list(Args) ->
   Src = generate_match_fun("fun({", Args),
   {ok, Tokens, _} = erl_scan:string(Src),
   {ok, [Form]} = erl_parse:parse_exprs(Tokens),
   {value, Fun, _} = erl_eval:expr(Form, erl_eval:new_bindings()),
   Fun.
-    
+
 generate_match_fun(Src, []) ->
   Src ++ "}) -> true; (_) -> false end.";
-  
+
 % unbound atom means you don't care about an arg
 generate_match_fun(Src, [unbound|Args]) ->
   if
     length(Args) > 0 -> generate_match_fun(Src ++ "_,", Args);
     true -> generate_match_fun(Src ++ "_", Args)
   end;
-  
+
 generate_match_fun(Src, [Bound|Args]) ->
   Term = lists:flatten(io_lib:format("~w", [Bound])),
   if
