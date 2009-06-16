@@ -24,7 +24,7 @@
 -include("../include/common.hrl").
 
 -ifdef(TEST).
--include("etest/configuration_test.erl").
+-include("../etest/configuration_test.erl").
 -endif.
 
 %%====================================================================
@@ -36,6 +36,7 @@
 %% @end 
 %%--------------------------------------------------------------------
 start_link(ConfigFile) ->
+  timer:sleep(10), %% tarded, having to wait for prev test config to shutdown
   gen_server:start_link({local, configuration}, configuration, ConfigFile, []).
 
 get_config(Node) ->
@@ -97,8 +98,8 @@ init(ConfigFile) when is_list(ConfigFile) ->
 
 handle_call(get_config, _From, State) ->
 	{reply, State, State};
-	
-handle_call({set_config, Config}, _From, State) ->
+
+handle_call({set_config, Config}, _From, _State) ->
   {reply, ok, Config}.
 
 %%--------------------------------------------------------------------
@@ -109,7 +110,8 @@ handle_call({set_config, Config}, _From, State) ->
 %% @end 
 %%--------------------------------------------------------------------
 handle_cast(stop, State) ->
-    {stop, normal, State}.
+  timer:sleep(10),
+  {stop, normal, State}.
 
 %%--------------------------------------------------------------------
 %% @spec handle_info(Info, State) -> {noreply, State} |
