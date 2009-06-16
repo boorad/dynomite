@@ -1,7 +1,7 @@
 %%%-------------------------------------------------------------------
 %%% File:      replication.erl
 %%% @author    Brad Anderson <brad@cloudant.com> [http://www.cloudant.com]
-%%% @copyright 2009 Cliff Moon
+%%% @copyright 2009 Brad Anderson
 %%% @doc
 %%%
 %%% @end

@@ -2,9 +2,9 @@
 %%% File:      configuration.erl
 %%% @author    Cliff Moon <> []
 %%% @copyright 2008 Cliff Moon
-%%% @doc  
+%%% @doc
 %%%
-%%% @end  
+%%% @end
 %%%
 %%% @since 2008-07-18 by Cliff Moon
 %%%-------------------------------------------------------------------
@@ -33,10 +33,10 @@
 %%--------------------------------------------------------------------
 %% @spec start_link() -> {ok,Pid} | ignore | {error,Error}
 %% @doc Starts the server
-%% @end 
+%% @end
 %%--------------------------------------------------------------------
 start_link(ConfigFile) ->
-  timer:sleep(10), %% tarded, having to wait for prev test config to shutdown
+  timer:sleep(10), %% "advanced" having to wait for prev test config to shutdown
   gen_server:start_link({local, configuration}, configuration, ConfigFile, []).
 
 get_config(Node) ->
@@ -44,13 +44,13 @@ get_config(Node) ->
 
 get_config() ->
   case get(config) of
-    undefined -> 
+    undefined ->
       C = gen_server:call(configuration, get_config),
       put(config, C),
       C;
     C -> C
   end.
-  
+
 set_config(Config) ->
   gen_server:call(configuration, {set_config, Config}).
 
@@ -69,7 +69,7 @@ stop() ->
 %%                         ignore               |
 %%                         {stop, Reason}
 %% @doc Initiates the server
-%% @end 
+%% @end
 %%--------------------------------------------------------------------
 init(Config = #config{}) ->
   Merged = pick_node_and_merge(Config, nodes([visible])),
@@ -77,7 +77,7 @@ init(Config = #config{}) ->
 
 init(ConfigFile) when is_list(ConfigFile) ->
   case read_config_file(ConfigFile) of
-    {ok, Config} -> 
+    {ok, Config} ->
       filelib:ensure_dir(Config#config.directory ++ "/"),
         Merged = pick_node_and_merge(Config, nodes([visible])),
       {ok, Config};
@@ -85,7 +85,7 @@ init(ConfigFile) when is_list(ConfigFile) ->
   end.
 
 %%--------------------------------------------------------------------
-%% @spec 
+%% @spec
 %% handle_call(Request, From, State) -> {reply, Reply, State} |
 %%                                      {reply, Reply, State, Timeout} |
 %%                                      {noreply, State} |
@@ -93,7 +93,7 @@ init(ConfigFile) when is_list(ConfigFile) ->
 %%                                      {stop, Reason, Reply, State} |
 %%                                      {stop, Reason, State}
 %% @doc Handling call messages
-%% @end 
+%% @end
 %%--------------------------------------------------------------------
 
 handle_call(get_config, _From, State) ->
@@ -107,7 +107,7 @@ handle_call({set_config, Config}, _From, _State) ->
 %%                                      {noreply, State, Timeout} |
 %%                                      {stop, Reason, State}
 %% @doc Handling cast messages
-%% @end 
+%% @end
 %%--------------------------------------------------------------------
 handle_cast(stop, State) ->
   timer:sleep(10),
@@ -118,7 +118,7 @@ handle_cast(stop, State) ->
 %%                                       {noreply, State, Timeout} |
 %%                                       {stop, Reason, State}
 %% @doc Handling all non call/cast messages
-%% @end 
+%% @end
 %%--------------------------------------------------------------------
 handle_info(_Info, State) ->
     {noreply, State}.
@@ -129,7 +129,7 @@ handle_info(_Info, State) ->
 %% terminate. It should be the opposite of Module:init/1 and do any necessary
 %% cleaning up. When it returns, the gen_server terminates with Reason.
 %% The return value is ignored.
-%% @end 
+%% @end
 %%--------------------------------------------------------------------
 terminate(_Reason, _State) ->
     ok.
@@ -137,7 +137,7 @@ terminate(_Reason, _State) ->
 %%--------------------------------------------------------------------
 %% @spec code_change(OldVsn, State, Extra) -> {ok, NewState}
 %% @doc Convert process state when code is changed
-%% @end 
+%% @end
 %%--------------------------------------------------------------------
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
@@ -159,7 +159,7 @@ pick_node_and_merge(Config, Nodes) ->
 merge_configs(Remote, Local) ->
   %we need to merge in any cluster invariants
   merge_configs([n, r, w, q, storage_mod, blocksize, buffered_writes], Remote, Local).
-  
+
 merge_configs([], Remote, Merged) -> Merged;
 
 merge_configs([Field|Fields], Remote, Merged) ->
@@ -170,31 +170,31 @@ read_config_file(ConfigFile) ->
     {ok, Bin} -> {ok, decode_json(mochijson:decode(Bin))};
     {error, Reason} -> {error, Reason}
   end.
-  
+
 decode_json({struct, Options}) ->
   decode_json(Options, #config{}).
-  
+
 decode_json([], Config) ->
   Config;
-  
+
 decode_json([{Field,null} | Options], Config) -> % null is undefined lol
   decode_json(Options, config_set(list_to_atom(Field), Config, undefined));
-  
+
 decode_json([{Field,Value} | Options], Config) ->
   decode_json(Options, config_set(list_to_atom(Field), Config, Value)).
-  
+
 config_get(Field, Tuple) ->
   config_get(record_info(fields, config), Field, Tuple, 2).
-  
+
 config_get([], _, _, _) ->
   undefined;
-  
+
 config_get([Field | _], Field, Tuple, Index) ->
   element(Index, Tuple);
-  
+
 config_get([_ | Fields], Field, Tuple, Index) ->
   config_get(Fields, Field, Tuple, Index+1).
-  
+
 config_set(Field, Tuple, Value) ->
   config_set(record_info(fields, config), Field, Tuple, Value, 2).
 
