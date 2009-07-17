@@ -43,8 +43,8 @@ partners(Node, Nodes, Config) ->
 %% @spec pick_partners(proplist(), Node::dynomite_node(), [Node], [Node],
 %%                     integer()) -> list()
 %% @doc iterate through N-1 partner picks, returning the resulting list sorted
-pick_partners(_Meta, _Node, _Nodes, Acc, 0) ->
-  lists:sort(Acc);
+pick_partners(_Meta, Node, _Nodes, Acc, 0) ->
+  lists:sort(lists:delete(Node, Acc));
 pick_partners(Meta, Node, Nodes, Acc, Count) ->
   Partner = pick_partner(Meta, Node, Nodes, Acc, 1),
   pick_partners(Meta, Node, lists:delete(Partner, Nodes), [Partner|Acc],

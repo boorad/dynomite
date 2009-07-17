@@ -12,6 +12,8 @@
 -define(NODEE, {e, ["e", "2", "2"]}).
 -define(NODES, [?NODEA, ?NODEB, ?NODEC, ?NODED, ?NODEE]).
 
+%% TODO: give this some effigy love, mock configuration up all of these
+%%       different ways.
 
 metadata_level_1_test() ->
   configuration:start_link(#config{n=3,r=1,w=1,q=6,
@@ -50,3 +52,21 @@ no_metadata_test() ->
                                   configuration:get_config()),
   ?assertEqual([b], Partners),
   configuration:stop().
+
+
+self_test() ->
+    configuration:start_link(#config{n=3,r=1,w=1,q=6,
+                                   directory=test_utils:priv_dir(),
+                                   meta=[]}),
+    Partners = replication:partners(a, [a],
+                                    configuration:get_config()),
+    ?assertEqual([], Partners),
+    configuration:stop().
+
+
+remove_self_test() ->
+    configuration:start_link(
+        #config{n=4,r=1,w=1,q=6, directory=test_utils:priv_dir(), meta=[]}),
+    Partners = replication:partners(a, [a,b], configuration:get_config()),
+    ?assertEqual([b], Partners),
+    configuration:stop().
